@@ -46,6 +46,25 @@ Gc = 10;                     % carrier gain
 % Use upconvert() function to create passband signal s(t)
 [s, mRF, tRF] = upconvert(m, Gc, fs_base, fc, fh);
 
+% 1. Plot the upsampled version of m(t)
+figure;
+plot(tRF, mRF);
+xlabel('Time (s)');
+ylabel('Amplitude');
+title('Upsampled Message Signal m(t) at f_h = 10 MHz');
+grid on;
+
+% 2. Compute energy of the upsampled m(t)
+% We use 1/fh because the sample time dt = 1/fh
+Em_upsampled = sum(mRF.^2) * (1/fh);
+disp("Energy of upsampled m(t): " + Em_upsampled);
+
+% Compare to original Em (which you calculated in Part A)
+% Ensure Em is available here. If you ran Part A, it is in your workspace.
+if exist('Em', 'var')
+    disp("Difference from original Em: " + (Em_upsampled - Em));
+end
+
 % Plot a short segment of s(t) to see the carrier
 Nplot = min(5000, length(s));        % only plot a small chunk
 figure;

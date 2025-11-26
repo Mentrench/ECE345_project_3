@@ -1,4 +1,5 @@
 function [s, mRF, tRF] = upconvert(m, Gc, fs, fc, fh)
+
 % upconvert  Upconverts baseband message m(t) to RF passband s(t)
 %   m   : baseband message (column or row vector) at sampling rate fs
 %   Gc  : carrier gain
@@ -30,3 +31,4 @@ function [s, mRF, tRF] = upconvert(m, Gc, fs, fc, fh)
     % Element-wise multiplication to get s(t)
     s = mRF_row .* c;               % row vector
 end
+
