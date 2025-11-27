@@ -136,5 +136,40 @@ for i = 1:length(sigma2_list)
     title(['Noisy y(t) with \sigma^2 = ' num2str(sigma2)]);
 end
 
+% [Inside Part (c) of part3_1.m]
+
+for i = 1:length(sigma2_list)
+    sigma2 = sigma2_list(i);
+    sigma  = sqrt(sigma2);
+
+    % Generate white Gaussian noise w(t)
+    w = randn(1, s_len);
+
+    % Scale noise to have variance sigma^2
+    noise = sigma * w;
+
+    % Received signal y(t) = s(t) + noise
+    y = s + noise;
+
+    % --- NEW CODE: Calculate and Display Energy ---
+    Ey = sum(y.^2) * (1/fh);
+    disp(['Energy for sigma^2 = ', num2str(sigma2), ' is: ', num2str(Ey)]);
+    % ---------------------------------------------
+
+    % Plot compare s(t) and y(t)
+    figure;
+    subplot(2,1,1);
+    plot(tRF(1:Nplot), s(1:Nplot));
+    xlabel('Time (s)'); ylabel('Amplitude');
+    title(['Clean s(t), Gc=10']);
+    grid on;
+
+    subplot(2,1,2);
+    plot(tRF(1:Nplot), y(1:Nplot));
+    xlabel('Time (s)'); ylabel('Amplitude');
+    title(['Noisy y(t) with \sigma^2 = ' num2str(sigma2)]);
+    grid on;
+end
+
 disp('Finished parts (a), (b), and (c).');
 

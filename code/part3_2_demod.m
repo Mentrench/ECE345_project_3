@@ -118,4 +118,14 @@ xlabel('Time (s)'); ylabel('Amplitude');
 title('Reconstructed $\hat{m}(t)$, $\sigma^2 = 1.0$', 'Interpreter', 'latex')
 grid on;
 
+%% -------- NEW: Calculate Energy for Report --------
+% Energy = sum(sample^2) * dt, where dt = 1/fh
+E_vLP_low  = sum(vLP_low.^2) * (1/fh);
+E_vLP_high = sum(vLP_high.^2) * (1/fh);
+
+disp('------------------------------------------------');
+disp(['Energy after Rx lowpass under low noise: ', num2str(E_vLP_low)]);
+disp(['Energy after Rx lowpass under high noise: ', num2str(E_vLP_high)]);
+disp('------------------------------------------------');
+
 disp('Finished 3.2(a), (b), and (c) – No audio playback included.');
