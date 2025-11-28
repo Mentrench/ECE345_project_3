@@ -1,4 +1,3 @@
-
 function x = QAMmod(M, f0, A, K, fs)
 % QAMmod  4-QAM modulator
 %   M  : row or column vector of bits (0/1), length must be even
