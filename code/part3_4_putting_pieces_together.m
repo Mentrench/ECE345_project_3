@@ -173,7 +173,7 @@ for i = 1:length(sigma2_vals)
 end
 
 % Plot BER vs 1/sigma^2 using log-log scale
-SNRproxy = 1 ./ sigma2_vals;
+SNRproxy = Gc ./ sigma2_vals;   % Matches rubric: SNR = Gc / sigma^2    
 
 figure;
 loglog(SNRproxy, avgBER, 'o-');
