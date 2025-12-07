@@ -126,65 +126,99 @@ disp(['Compared bits: ', num2str(Ncomp)]);
 disp(['Bit errors:    ', num2str(bitErrors)]);
 disp(['Bit error rate: ', num2str(BER)]);
 
+%% ECE 345 – Project 3.4 (f) & (g): Simulation and Plotting
+clear; clc; close all;
 
-%% 3.4(f) – Monte Carlo: average BER vs sigma^2 (10 values, 50 runs each)
+%% 1. Parameters
+fs      = 44.1e3;       % Baseband sampling frequency (Hz)
+fh      = 10e6;         % RF simulation sampling frequency (Hz)
+f0      = 5e3;          % QAM pulse frequency (Hz)
+A       = 200;          % QAM energy parameter
+Gc      = 10;           % Carrier gain
+K       = 4;            % Cycles per baseband QAM pulse
+fc      = 1310e3;       % Carrier frequency (Hz)
+fcutoff = fs/2;         % Lowpass cutoff at downconversion
 
-% Use log-spaced noise variances, e.g. from 1e-8 to 1e-2
-sigma2_vals = logspace(-8, -2, 10);
-avgBER      = zeros(size(sigma2_vals));
+% Message Selection
+msgStr = 'I NEED TO FIND A BETTER SIGNAL';
+binChars = dec2bin(msgStr);          % Convert to char array of binary
+bitsMatrix = binChars.' - '0';       % Convert to 0/1 integers
+M = bitsMatrix(:).';                 % Flatten to row vector of bits
 
-numRuns = 50;
+%% 2. Simulation Setup (CORRECTED RANGE)
+% We adjust the range to where errors actually occur (1/sigma^2 from 10^3 to 10^7)
+% This captures the "waterfall" curve seen in the sample report.
+inv_sigma2_range = logspace(3, 7, 15); 
+sigma2_range = 1 ./ inv_sigma2_range;   
 
-for i = 1:length(sigma2_vals)
-    sigma2_i = sigma2_vals(i);
-    sigma_i  = sqrt(sigma2_i);
+numTrials = 100;                        % Increased trials to catch rare errors
+BER_results = zeros(size(sigma2_range));
 
+fprintf('Starting Simulation (%d trials per variance)...\n', numTrials);
+
+%% 3. Main Simulation Loop
+for i = 1:length(sigma2_range)
+    sigma2 = sigma2_range(i);
+    sigma = sqrt(sigma2);
+    
     totalErrors = 0;
-    totalBits   = 0;
-
-    for r = 1:numRuns
-        % Upconvert same baseband m(t)
-        [x_i, ~, ~] = upconvert(m_bb, Gc, fs, fc, fh);
-
-        % Add noise with variance sigma2_i
-        w_i = sigma_i * randn(1, length(x_i));
-        y_i = x_i + w_i;
-
-        % Downconvert
-        m_hat_i = downconvert(y_i, fh, fc, fcutoff, fs);
-
-        % Demodulate
-        bitsHat_i = QAMdemod(m_hat_i, fs, f0, K);
-
-        % Compare bits
-        Ntrue_i = length(M);
-        Nhat_i  = length(bitsHat_i);
-        Ncomp_i = min(Ntrue_i, Nhat_i);
-
-        err_i = sum(M(1:Ncomp_i) ~= bitsHat_i(1:Ncomp_i));
-
-        totalErrors = totalErrors + err_i;
-        totalBits   = totalBits   + Ncomp_i;
+    totalBits = 0;
+    
+    for t = 1:numTrials
+        % --- A. Modulate ---
+        m_bb = QAMmod(M, f0, A, K, fs);
+        
+        % --- B. Upconvert ---
+        [x, ~, ~] = upconvert(m_bb, Gc, fs, fc, fh);
+        
+        % --- C. Add Noise ---
+        w = sigma * randn(1, length(x));
+        y = x + w;
+        
+        % --- D. Downconvert ---
+        m_hat = downconvert(y, fh, fc, fcutoff, fs);
+        
+        % --- E. Demodulate ---
+        bitsHat = QAMdemod(m_hat, fs, f0, K);
+        
+        % Count Errors
+        lenComp = min(length(M), length(bitsHat));
+        bitErrors = sum(M(1:lenComp) ~= bitsHat(1:lenComp));
+        
+        totalErrors = totalErrors + bitErrors;
+        totalBits = totalBits + lenComp;
     end
-
-    avgBER(i) = totalErrors / totalBits;
-    disp(['sigma^2 = ', num2str(sigma2_i), ...
-          ', avg BER = ', num2str(avgBER(i))]);
+    
+    BER_results(i) = totalErrors / totalBits;
+    
+    fprintf('1/sigma^2 = %.2e | Avg BER = %.5f\n', ...
+            inv_sigma2_range(i), BER_results(i));
 end
 
-% Plot BER vs 1/sigma^2 using log-log scale
-SNRproxy = Gc ./ sigma2_vals;   % Matches rubric: SNR = Gc / sigma^2    
+%% 4. Plotting (Part g)
+% Plot log10(BER) vs log10(1/sigma^2)
+
+log_inv_sigma2 = log10(inv_sigma2_range);
+log_BER = log10(BER_results);
+
+% --- PLOT FIX ---
+% Only plot points where BER > 0 to avoid -Inf issues
+valid_idx = BER_results > 0;
 
 figure;
-loglog(SNRproxy, avgBER, 'o-');
-xlabel('1 / \sigma^2 (proxy for SNR)');
-ylabel('Average bit error rate');
-title('BER vs 1/\sigma^2 for QAM over noisy AM channel');
+plot(log_inv_sigma2(valid_idx), log_BER(valid_idx), '-o', 'LineWidth', 2);
 grid on;
+xlabel('log_{10}(1 / \sigma^2) (Proxy for SNR)');
+ylabel('log_{10}(Bit Error Rate)');
+title(['BER vs SNR Proxy (G_c = ' num2str(Gc) ')']);
+subtitle('Corrected Range to visualize Error Waterfall');
 
-disp('Finished 3.4(a)–(f).');
+% Set axis limits to match the report style
+xlim([3 7]); 
+ylim([-4 0]); % Adjust based on results
 
+% Aesthetics matching the project report style
+set(gca, 'FontSize', 12);
+xlim([min(log_inv_sigma2) max(log_inv_sigma2)]);
 
-%%PART G
-
-%% Increasing the pulse frequency f0 makes the bit rate go up because symbols become shorter, but it also makes the bit error rate get worse because there is less energy per symbol. Increasing the energy parameter A, the number of cycles K, or the carrier gain Gc makes the bit error rate go down because the signal becomes stronger or longer and easier to detect. Increasing the noise variance sigma2 makes the bit error rate go up. Changing the carrier frequency fc does not have an important effect on the bit error rate. Only parameters that change symbol duration affect the transmission rate. Carrier frequency, energy, and noise do not change the transmission rate because they do not change how fast symbols are sent.
+disp('Simulation Complete.');
